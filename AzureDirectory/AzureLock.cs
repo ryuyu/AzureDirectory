@@ -23,7 +23,7 @@ namespace Lucene.Net.Store.Azure
         }
 
         #region Lock methods
-        override public bool IsLocked()
+        private bool IsLocked()
         {
             var blob = _azureDirectory.BlobContainer.GetBlockBlobReference(_lockFile);
             try
@@ -85,6 +85,37 @@ namespace Lucene.Net.Store.Azure
         }
 
         private Timer _renewTimer;
+
+        public override bool Locked
+        {
+            get
+            {
+                var blob = _azureDirectory.BlobContainer.GetBlockBlobReference(_lockFile);
+                try
+                {
+                    Debug.Print("IsLocked() : {0}", _leaseid);
+                    if (String.IsNullOrEmpty(_leaseid))
+                    {
+                        var tempLease = blob.AcquireLease(TimeSpan.FromSeconds(60), _leaseid);
+                        if (String.IsNullOrEmpty(tempLease))
+                        {
+                            Debug.Print("IsLocked() : TRUE");
+                            return true;
+                        }
+                        blob.ReleaseLease(new AccessCondition() { LeaseId = tempLease });
+                    }
+                    Debug.Print("IsLocked() : {0}", _leaseid);
+                    return String.IsNullOrEmpty(_leaseid);
+                }
+                catch (StorageException webErr)
+                {
+                    if (_handleWebException(blob, webErr))
+                        return IsLocked();
+                }
+                _leaseid = null;
+                return false;
+            }
+        }
 
         public void Renew()
         {

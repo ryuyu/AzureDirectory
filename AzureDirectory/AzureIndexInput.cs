@@ -22,7 +22,7 @@ namespace Lucene.Net.Store.Azure
 
         public Lucene.Net.Store.Directory CacheDirectory { get { return _azureDirectory.CacheDirectory; } }
 
-        public AzureIndexInput(AzureDirectory azuredirectory, ICloudBlob blob)
+        public AzureIndexInput(AzureDirectory azuredirectory, ICloudBlob blob) : base("Azure" + azuredirectory.ToString())
         {
             _name = blob.Uri.Segments[blob.Uri.Segments.Length - 1];
 
@@ -66,7 +66,8 @@ namespace Lucene.Net.Store.Azure
                     {
 
                         // cachedLastModifiedUTC was not ouputting with a date (just time) and the time was always off
-                        long unixDate = CacheDirectory.FileModified(fileName);
+                        // TODO: Get real date. Always assume old for now
+                        long unixDate = 0; //CacheDirectory.FileModified(fileName);
                         DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                         var cachedLastModifiedUTC = start.AddMilliseconds(unixDate).ToUniversalTime();
                         
@@ -107,7 +108,7 @@ namespace Lucene.Net.Store.Azure
                     }
 
                     // and open it as an input 
-                    _indexInput = CacheDirectory.OpenInput(fileName);
+                    _indexInput = CacheDirectory.OpenInput(fileName, IOContext.DEFAULT);
                 }
                 else
                 {
@@ -116,7 +117,7 @@ namespace Lucene.Net.Store.Azure
 #endif
 
                     // open the file in read only mode
-                    _indexInput = CacheDirectory.OpenInput(fileName);
+                    _indexInput = CacheDirectory.OpenInput(fileName, IOContext.DEFAULT);
                 }
             }
             finally
@@ -155,7 +156,7 @@ namespace Lucene.Net.Store.Azure
             }
         }
 
-        public AzureIndexInput(AzureIndexInput cloneInput)
+        public AzureIndexInput(AzureIndexInput cloneInput) : base("Azure" + cloneInput.ToString())
         {
             _fileMutex = BlobMutexManager.GrabMutex(cloneInput._name);
             _fileMutex.WaitOne();
@@ -205,7 +206,28 @@ namespace Lucene.Net.Store.Azure
             _indexInput.Seek(pos);
         }
 
-        protected override void Dispose(bool disposing)
+//        protected override void Dispose(bool disposing)
+//        {
+//            _fileMutex.WaitOne();
+//            try
+//            {
+//#if FULLDEBUG
+//                Debug.WriteLine(String.Format("CLOSED READSTREAM local {0}", _name));
+//#endif
+//                _indexInput.Dispose();
+//                _indexInput = null;
+//                _azureDirectory = null;
+//                _blobContainer = null;
+//                _blob = null;
+//                GC.SuppressFinalize(this);
+//            }
+//            finally
+//            {
+//                _fileMutex.ReleaseMutex();
+//            }
+//        }
+
+        public override void Dispose()
         {
             _fileMutex.WaitOne();
             try

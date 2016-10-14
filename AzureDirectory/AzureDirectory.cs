@@ -16,9 +16,6 @@ namespace Lucene.Net.Store.Azure
         private CloudBlobContainer _blobContainer;
         private Directory _cacheDirectory;
 
-
-
-
         /// <summary>
         /// Create an AzureDirectory
         /// </summary>
@@ -49,7 +46,6 @@ namespace Lucene.Net.Store.Azure
                 rootFolder = rootFolder.Trim('/');
                 _rootFolder = rootFolder + "/";
             }
-
 
             _blobClient = storageAccount.CreateCloudBlobClient();
             _initCacheDirectory(cacheDirectory);
@@ -90,6 +86,19 @@ namespace Lucene.Net.Store.Azure
             }
         }
 
+        public override LockFactory LockFactory
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         private void _initCacheDirectory(Directory cacheDirectory)
         {
             if (cacheDirectory != null)
@@ -109,7 +118,7 @@ namespace Lucene.Net.Store.Azure
                 if (!catalogDir.Exists)
                     catalogDir.Create();
 
-                _cacheDirectory = FSDirectory.Open(catalogPath);
+                _cacheDirectory = FSDirectory.Open(catalogDir);
             }
 
             CreateContainer();
@@ -144,7 +153,7 @@ namespace Lucene.Net.Store.Azure
         }
 
         /// <summary>Returns the time the named file was last modified. </summary>
-        public override long FileModified(String name)
+        public long FileModified(String name)
         {
             // this always has to come from the server
             try
@@ -160,13 +169,13 @@ namespace Lucene.Net.Store.Azure
         }
 
         /// <summary>Set the modified time of an existing file to now. </summary>
-        public override void TouchFile(System.String name)
+        public void TouchFile(System.String name)
         {
             //BlobProperties props = _blobContainer.GetBlobProperties(_rootFolder + name);
             //_blobContainer.UpdateBlobMetadata(props);
             // I have no idea what the semantics of this should be...hmmmm...
             // we never seem to get called
-            _cacheDirectory.TouchFile(name);
+            //_cacheDirectory.TouchFile(name);
             //SetCachedBlobProperties(props);
         }
 
@@ -210,14 +219,14 @@ namespace Lucene.Net.Store.Azure
         /// <summary>Creates a new, empty file in the directory with the given name.
         /// Returns a stream writing this file. 
         /// </summary>
-        public override IndexOutput CreateOutput(System.String name)
+        public override IndexOutput CreateOutput(System.String name, IOContext context)
         {
             var blob = _blobContainer.GetBlockBlobReference(_rootFolder + name);
             return new AzureIndexOutput(this, blob);
         }
 
         /// <summary>Returns a stream reading an existing file. </summary>
-        public override IndexInput OpenInput(System.String name)
+        public override IndexInput OpenInput(System.String name, IOContext context)
         {
             try
             {
@@ -261,7 +270,13 @@ namespace Lucene.Net.Store.Azure
         }
 
         /// <summary>Closes the store. </summary>
-        protected override void Dispose(bool disposing)
+        //protected override void Dispose(bool disposing)
+        //{
+        //    _blobContainer = null;
+        //    _blobClient = null;
+        //}
+
+        public override void Dispose()
         {
             _blobContainer = null;
             _blobClient = null;
@@ -293,14 +308,18 @@ namespace Lucene.Net.Store.Azure
         }
         public StreamInput OpenCachedInputAsStream(string name)
         {
-            return new StreamInput(CacheDirectory.OpenInput(name));
+            return new StreamInput(CacheDirectory.OpenInput(name, IOContext.DEFAULT));
         }
 
         public StreamOutput CreateCachedOutputAsStream(string name)
         {
-            return new StreamOutput(CacheDirectory.CreateOutput(name));
+            return new StreamOutput(CacheDirectory.CreateOutput(name, IOContext.DEFAULT));
+        }
+
+        public override void Sync(ICollection<string> names)
+        {
+            throw new NotImplementedException();
         }
 
     }
-
 }

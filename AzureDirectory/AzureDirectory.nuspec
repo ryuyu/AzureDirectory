@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>AzureDirectory</id>
-        <version>$version$</version>
+        <version>4.8.0-beta</version>
         <authors>Richard Astbury</authors>
         <owners>richorama</owners>
         <licenseUrl>https://raw2.github.com/WindowsAzure-Contrib/AzureDirectory/master/License.txt</licenseUrl>

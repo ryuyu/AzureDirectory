@@ -33,7 +33,7 @@ namespace Lucene.Net.Store.Azure
                 _name = blob.Uri.Segments[blob.Uri.Segments.Length - 1];
 
                 // create the local cache one we will operate against...
-                _indexOutput = CacheDirectory.CreateOutput(_name);
+                _indexOutput = CacheDirectory.CreateOutput(_name, IOContext.DEFAULT);
             }
             finally
             {
@@ -46,7 +46,7 @@ namespace Lucene.Net.Store.Azure
             _indexOutput.Flush();
         }
 
-        protected override void Dispose(bool disposing)
+        public override void Dispose() //bool disposing)
         {
             _fileMutex.WaitOne();
             try
@@ -68,7 +68,7 @@ namespace Lucene.Net.Store.Azure
                 }
                 else
                 {
-                    blobStream = new StreamInput(CacheDirectory.OpenInput(fileName));
+                    blobStream = new StreamInput(CacheDirectory.OpenInput(fileName, IOContext.DEFAULT));
                 }
 
                 try
@@ -78,7 +78,7 @@ namespace Lucene.Net.Store.Azure
 
                     // set the metadata with the original index file properties
                     _blob.Metadata["CachedLength"] = originalLength.ToString();
-                    _blob.Metadata["CachedLastModified"] = CacheDirectory.FileModified(fileName).ToString();
+                    _blob.Metadata["CachedLastModified"] = "TEMPMOCKED_WHILE_BROKEN"; // CacheDirectory.FileModified(fileName).ToString();
                     _blob.SetMetadata();
 
                     Debug.WriteLine(string.Format("PUT {1} bytes to {0} in cloud", _name, blobStream.Length));
@@ -111,7 +111,7 @@ namespace Lucene.Net.Store.Azure
 
             try
             {
-                using (var indexInput = CacheDirectory.OpenInput(fileName))
+                using (var indexInput = CacheDirectory.OpenInput(fileName, IOContext.DEFAULT))
                 using (var compressor = new DeflateStream(compressedStream, CompressionMode.Compress, true))
                 {
                     // compress to compressedOutputStream
@@ -151,10 +151,10 @@ namespace Lucene.Net.Store.Azure
             _indexOutput.WriteByte(b);
         }
 
-        public override void WriteBytes(byte[] b, int length)
-        {
-            _indexOutput.WriteBytes(b, length);
-        }
+        //public override void WriteBytes(byte[] b, int length)
+        //{
+        //    _indexOutput.WriteBytes(b, length);
+        //}
 
         public override void WriteBytes(byte[] b, int offset, int length)
         {
@@ -166,6 +166,14 @@ namespace Lucene.Net.Store.Azure
             get
             {
                 return _indexOutput.FilePointer;
+            }
+        }
+
+        public override long Checksum
+        {
+            get
+            {
+                return 0;
             }
         }
 
